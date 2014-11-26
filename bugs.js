@@ -1,43 +1,98 @@
-var bz = require("bz");
-var bugzilla = bz.createClient({
-  //url: "https://bugzilla.mozilla.org/show_bug.cgi?id=955191",
-  username: '333onk@gmail.com',
-  password: 'MMSe2014!',
-  timeout: 30000
-});
+    var bz = require("bz");
 
-//console.log(bugzilla);
+    //logging to bugzilla
+    var bugzilla = bz.createClient({
+      username: '333onk@gmail.com',
+      password: 'MMSe2014!',
+      timeout: 30000
+    });
 
-bugzilla.searchBugs({
-  resolution: "FIXED",
-  query_format: "advanced"
-}, function(error, bugs) {
-    //console.log(bug);
-    console.log(bugs.length);
-    if (!error) {
+    //impotring data from file
+    var bugs = require('./ids');
+    var data = bugs.data;
+
+    for (var i = 0; i < 100; ++i) {
+        var item = data[i]; 
+        bugzilla.getBug(parseInt(item), function(error, bug) {
+        if (!error) {
+            bugzilla.bugHistory(parseInt(bug.id), function(error, history) {
+                if (!error && getAssignedTimeFromBugHistory(history) && getResolvedTimeFromBugHistory(history)) {
+                    insertIntoDB(bug, history);  
+                }
+            });  
+        }
+    });  
     }
-  });
-// bugzilla.searchBugs('resolution=FIXED&query_format=advanced',function(error, bugs) {
-//     console.log(bugs);
-//     //lol(bug);
-//   if (!error) {
-//   } });
 
-// function lol(bug){
+    function insertIntoDB(bug, history){
 
-// var mysql      = require('mysql');
-// var connection = mysql.createConnection({
-//   host     : 'localhost',
-//   user     : 'root',
-//   password : 'root'
-// });
+      var mysql = require('mysql');
 
-// connection.connect();
+      var connection = mysql.createConnection({
+        host     : 'localhost',
+        user     : 'root',
+        password : 'root'
+    });
 
-// var post  = {creation_time: bug.creation_time, last_change_time: bug.last_change_time, summary: bug.summary, assigned_to_detail:bug.assigned_to_detail,  assigned_to: bug.assigned_to, resolution: bug.resolution, classification: bug.classification, component: bug.component, product:bug.product};
-// var query = connection.query('INSERT INTO `bugzilla`.`bug` SET ?', post, function(err, result) {
-//   // Neat!
-// });
+      connection.connect();
+      var summary = bug.summary.replace(/"/g, "").replace(/'/g, "");
 
-// connection.end();  
-//}
+      var post  = {
+        bug_id: bug.id,
+        creation_time: getAssignedTimeFromBugHistory(history), 
+        summary: summary,
+        summary_words_count: summary.split(' ').length,
+        last_change_time: getResolvedTimeFromBugHistory(history), 
+        platform: bug.platform,
+        op_sys: bug.op_sys,
+        priority: bug.priority,
+        depends: bug.depends_on.length,
+        blocks: bug.blocks.length,
+        component: bug.component
+    };
+    var query = connection.query('INSERT INTO `bugzilla`.`bug` SET ?', post, function(err, result) {
+        if(!err){
+            console.log(result)
+        }
+        else{
+            console.log(err);
+        }
+    });
+
+    connection.end();  
+    }
+
+    function getAssignedTimeFromBugHistory(bugHistory){
+
+        var t =  bugHistory[0].history.filter(function (el) {
+            if(el.changes.filter(function(ch){
+             return  ch.added == "ASSIGNED";
+         }).length){
+                return true;
+            }
+        });
+
+        if(t.length){
+            return t[0].when;
+        }
+        return false;
+    }
+
+
+     function getResolvedTimeFromBugHistory(bugHistory){
+
+        var t =  bugHistory[0].history.filter(function (el) {
+            if(el.changes.filter(function(ch){
+             return  ch.added == "RESOLVED";
+         }).length){
+                return true;
+            }
+        });
+
+        if(t.length){
+            return t[0].when;
+        }
+        return false;
+    }
+
+
