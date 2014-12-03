@@ -50,7 +50,7 @@ if(process.argv.length == 6){
         var i=0;
         function repeater(i) {
             var ASSIGNED, RESOLVED, SUMMARY ;
-            if( i < data.length ) {
+            if( i < data.length) {
                 bugzilla.getBug(parseInt(data[i][0]), function(err, bug) {
                         bugzilla.bugHistory(parseInt(data[i][0]), function(error, history) {
                             if (!error && getAssignedTimeFromBugHistory(history) && getResolvedTimeFromBugHistory(history)) {
@@ -78,6 +78,7 @@ if(process.argv.length == 6){
             if(i == data.length){
                  stringify(data, function(err, output){
                    writeFile(__dirname+'/'+process.argv[5],output);
+                   console.log('Output: ' + __dirname+'/'+process.argv[5]);
                 }); 
             }
         }
@@ -97,7 +98,7 @@ if(process.argv.length == 6){
         });
 
         if(t.length){
-            return t[0].when;
+            return t[t.length-1].when;
         }
         return false;
     }
@@ -125,9 +126,8 @@ if(process.argv.length == 6){
                 return true;
             }
         });
-
         if(t.length){
-            return t[0].when;
+            return t[t.length-1].when;
         }
         return false;
     }
