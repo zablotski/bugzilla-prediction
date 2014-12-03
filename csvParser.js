@@ -17,7 +17,7 @@ var parser = parse({delimiter: ','}, function(err, data){ //auto_parse
     }
 });
 
-fs.createReadStream(__dirname+'/buglist.csv').pipe(parser);
+fs.createReadStream(__dirname+'/1.csv').pipe(parser);
 
 function writeFile(filename, text){
     fs.writeFile(filename, text, function(err) {
@@ -31,38 +31,48 @@ function writeFile(filename, text){
 
 function iterate(data){
 
-    data[0].push('ASSIGNED', 'RESOLVED', 'HOURS', 'COUNT_SUMMARY', 'COUNT_BLOCKS', 'COUNT_DEPENDS', 'EVENTS_COUNT', 'HOURS_BEFORE_ASSIGNED');
+    data[0].push(
+        'ASSIGNED', 
+        'RESOLVED', 
+        'HOURS', 
+        'COUNT_SUMMARY', 
+        'COUNT_BLOCKS', 
+        'COUNT_DEPENDS', 
+        'EVENTS_COUNT', 
+        'HOURS_BEFORE_ASSIGNED'
+    );
 
     console.log('length: ' + data.length + '-> '+JSON.stringify(data[0]));
 
 
-    var i=1;
+    var i=0;
     function repeater(i) {
         var ASSIGNED, RESOLVED, SUMMARY ;
         if( i < data.length ) {
-            bugzilla.getBug(parseInt(data[i][0]), function(error, bug) {
-                bugzilla.bugHistory(parseInt(data[i][0]), function(error, history) {
-                    if (!error && getAssignedTimeFromBugHistory(history) && getResolvedTimeFromBugHistory(history)) {
+            bugzilla.getBug(parseInt(data[i][0]), function(err, bug) {
+                if (!err){
+                    bugzilla.bugHistory(parseInt(data[i][0]), function(error, history) {
+                        if (!error && getAssignedTimeFromBugHistory(history) && getResolvedTimeFromBugHistory(history)) {
 
-                        SUMMARY = bug.summary.replace(/"/g, "").replace(/'/g, "");
-                        ASSIGNED = getAssignedTimeFromBugHistory(history);
-                        RESOLVED = getResolvedTimeFromBugHistory(history);
+                            SUMMARY = (bug.summary.length)?bug.summary.replace(/"/g, "").replace(/'/g, ""):"";
+                            ASSIGNED = getAssignedTimeFromBugHistory(history);
+                            RESOLVED = getResolvedTimeFromBugHistory(history);
 
-                        data[i].push(
-                            ASSIGNED, 
-                            RESOLVED, 
-                            moment(RESOLVED).diff(moment(ASSIGNED), 'hours'), 
-                            SUMMARY.split(' ').length.toString(), 
-                            bug.blocks.length, 
-                            bug.depends_on.length, 
-                            getEventsCountInBugHistory(history),
-                            moment(ASSIGNED).diff(moment(bug.creation_time), 'hours')
-
-                        );
-                        console.log(i + "-> " + JSON.stringify(data[i]));
-                    }
-                    repeater(i+1);
-                });
+                            data[i].push(
+                                ASSIGNED, 
+                                RESOLVED, 
+                                moment(RESOLVED).diff(moment(ASSIGNED), 'hours'), 
+                                SUMMARY.split(' ').length, 
+                                bug.blocks.length, 
+                                bug.depends_on.length, 
+                                getEventsCountInBugHistory(history),
+                                moment(ASSIGNED).diff(moment(bug.creation_time), 'hours')
+                            );
+                            console.log(i + "-> " + JSON.stringify(data[i]));
+                        }
+                        repeater(i+1);
+                    });
+                }
             });
         }
         if(i == data.length){
