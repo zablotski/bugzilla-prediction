@@ -91,7 +91,7 @@ if(process.argv.length == 6){
 
         var t =  bugHistory[0].history.filter(function (el) {
             if(el.changes.filter(function(ch){
-               return  ch.added == "ASSIGNED";
+               return  ch.added == "ASSIGNED" || ch.what == "Assignee";
            }).length){
                 return true;
             }
