@@ -3,13 +3,19 @@ if(process.argv.length == 6){
     var fs = require('fs'); //io
     var parse = require('csv-parse'); //parse csv from file
     var bz = require("bz"); //bugzilla api library
+    var bzJSON = require("bz-json");
     var stringify = require('csv-stringify'); //js objects to csv text
     var moment = require('moment'); //library for comparision dates
-    var start = Date.now();//timer =)
-
+    var start = Date.now();//timer
     var bugzilla = bz.createClient({
-      username: process.argv[2],//'333onk@gmail.com',
-      password: process.argv[3],//'MMSe2014!',
+      username: process.argv[2],
+      password: process.argv[3],
+      timeout: 30000
+    });
+
+    var bugzillaJSON = bzJSON.createClient({
+      username: process.argv[2],
+      password: process.argv[3],
       timeout: 30000
     });
 
@@ -47,14 +53,15 @@ if(process.argv.length == 6){
         console.log('length: ' + data.length + '-> '+JSON.stringify(data[0]));
 
 
-        var i=0;
+        var i=1;
         function repeater(i) {
             var ASSIGNED, RESOLVED, SUMMARY ;
             if( i < data.length) {
-                bugzilla.getBug(parseInt(data[i][0]), function(err, bug) {
-                        bugzilla.bugHistory(parseInt(data[i][0]), function(error, history) {
+                bugzillaJSON.getBug(parseInt(data[i][0]), function(err, bug) {
+                    //console.log(data[i][0], ' ----->', JSON.stringify(bug));
+                        bugzillaJSON.bugHistory(parseInt(data[i][0]), function(error, history) {
+                            console.log(data[i][0], ' ----->', JSON.stringify( history));
                             if (!error && getAssignedTimeFromBugHistory(history) && getResolvedTimeFromBugHistory(history)) {
-
                                 SUMMARY = (bug.summary.length)?bug.summary.replace(/"/g, "").replace(/'/g, ""):"";
                                 ASSIGNED = getAssignedTimeFromBugHistory(history);
                                 RESOLVED = getResolvedTimeFromBugHistory(history);
